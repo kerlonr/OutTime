@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Previsão do Tempo</title>
+    <style>
+        :root {
+            --dark-bg: #121212;
+            --darker-bg: #0a0a0a;
+            --card-bg: #1e1e1e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent-color: #4a6cf7;
+            --border-color: #333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 1.8rem;
+        }
+
+        .search-container {
+            display: flex;
+            margin-bottom: 25px;
+            gap: 10px;
+        }
+
+        #city-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            background-color: var(--darker-bg);
+            color: var(--text-primary);
+            font-size: 16px;
+            outline: none;
+            border-radius: 6px;
+            transition: border 0.3s;
+        }
+
+        #city-input:focus {
+            border-color: var(--accent-color);
+        }
+
+        #search-btn,
+        .location-btn {
+            padding: 12px 20px;
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            border-radius: 6px;
+            min-width: 120px;
+        }
+
+        #search-btn:hover,
+        .location-btn:hover {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .weather-info {
+            display: none;
+        }
+
+        .current-weather {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .weather-icon {
+            width: 80px;
+            height: 80px;
+            margin-right: 25px;
+        }
+
+        .temp {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin: 5px 0;
+        }
+
+        .temp span {
+            font-weight: 500;
+        }
+
+        .details {
+            margin-left: auto;
+            text-align: right;
+            color: var(--text-secondary);
+        }
+
+        .details div {
+            margin-bottom: 8px;
+        }
+
+        .details span {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .forecast {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .forecast-day {
+            background-color: var(--card-bg);
+            padding: 18px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .forecast-day img {
+            width: 40px;
+            height: 40px;
+            margin: 10px 0;
+        }
+
+        .forecast-day .day-name {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .forecast-day .temps {
+            font-size: 1.1rem;
+            margin: 8px 0;
+        }
+
+        .forecast-day .condition {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .error {
+            color: #ff6b6b;
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgba(255, 0, 0, 0.1);
+            border-radius: 6px;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            margin: 30px 0;
+            color: var(--text-secondary);
+            display: none;
+        }
+
+        .location-info {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .current-weather {
+                flex-direction: column;
+                text-align: center;
+                padding: 20px;
+            }
+
+            .weather-icon {
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+
+            .details {
+                margin-left: 0;
+                margin-top: 20px;
+                text-align: center;
+            }
+
+            .search-container {
+                flex-direction: column;
+            }
+
+            #search-btn,
+            .location-btn {
+                width: 100%;
+            }
+
+            .forecast {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Previsão do Tempo</h1>
+
+        <div class="search-container">
+            <input type="text" id="city-input" placeholder="Digite uma cidade...">
+            <button id="search-btn">Buscar</button>
+            <button class="location-btn" id="location-btn">Minha localização</button>
+        </div>
+
+        <div id="loading" class="loading">Carregando...</div>
+        <div id="error-message" class="error"></div>
+        <div id="location-message" class="location-info"></div>
+
+        <div id="weather-info" class="weather-info">
+            <div class="current-weather">
+                <img id="weather-icon" class="weather-icon" src="" alt="Weather icon">
+                <div>
+                    <h2 id="city-name"></h2>
+                    <div id="weather-condition" style="color: var(--text-secondary); margin-bottom: 5px;"></div>
+                    <div class="temp"><span id="current-temp"></span>°C</div>
+                </div>
+                <div class="details">
+                    <div>Sensação: <span id="feels-like"></span>°C</div>
+                    <div>Umidade: <span id="humidity"></span>%</div>
+                    <div>Vento: <span id="wind-speed"></span> km/h</div>
+                </div>
+            </div>
+
+            <h3 style="margin-bottom: 15px;font-weight: 500;place-self: center;">Nessa semana</h3>
+            <div id="forecast" class="forecast"></div>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = 'a6c047ce5d5a4b9f898182804253103';
+        const searchBtn = document.getElementById('search-btn');
+        const locationBtn = document.getElementById('location-btn');
+        const cityInput = document.getElementById('city-input');
+        const weatherInfo = document.getElementById('weather-info');
+        const errorMessage = document.getElementById('error-message');
+        const loadingElement = document.getElementById('loading');
+        const locationMessage = document.getElementById('location-message');
+        let refreshInterval;
+
+        // Initial state - hide all messages initially
+        weatherInfo.style.display = 'none';
+        errorMessage.style.display = 'none';
+        loadingElement.style.display = 'none';
+        locationMessage.textContent = '';
+
+        // Event listeners
+        searchBtn.addEventListener('click', getWeatherByCityInput);
+        locationBtn.addEventListener('click', getPreciseLocation);
+        cityInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                getWeatherByCityInput();
+            }
+        });
+
+        // Start with precise location
+        window.addEventListener('load', () => {
+            getPreciseLocation();
+        });
+
+        function startAutoRefresh() {
+            // Clear any existing interval
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+
+            // Set new interval to refresh every minute (60000 ms)
+            refreshInterval = setInterval(() => {
+                if (cityInput.value.trim()) {
+                    getWeatherByCity(cityInput.value.trim());
+                }
+            }, 60000);
+        }
+
+        function getWeatherByCityInput() {
+            const city = cityInput.value.trim();
+            if (city) {
+                showLoading();
+                hideError();
+                locationMessage.textContent = `Mostrando previsão para: ${city}`;
+                getWeatherByCity(city);
+            } else {
+                showError('Por favor, digite uma cidade');
+            }
+        }
+
+        function getPreciseLocation() {
+            showLoading();
+            hideError();
+            locationMessage.textContent = 'Detectando sua localização...';
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const { latitude, longitude } = position.coords;
+                        locationMessage.textContent = 'Usando sua localização precisa';
+                        getWeatherByCoords(latitude, longitude);
+                    },
+                    error => {
+                        hideLoading();
+                        if (error.code === error.PERMISSION_DENIED) {
+                            showError('Acesso à localização negado. Digite uma cidade manualmente.');
+                        } else {
+                            showError('Não foi possível determinar sua localização. Tente novamente ou digite uma cidade.');
+                        }
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                hideLoading();
+                showError('Geolocalização não é suportada pelo seu navegador. Digite uma cidade manualmente.');
+            }
+        }
+
+        function getWeatherByCity(city) {
+            const url = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${encodeURIComponent(city)}&days=5&aqi=no&alerts=no&lang=pt`;
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Cidade não encontrada. Tente outra busca.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    displayWeatherData(data);
+                    cityInput.value = data.location.name;
+                    locationMessage.textContent = `Mostrando previsão para: ${data.location.name}`;
+                    startAutoRefresh();
+                })
+                .catch(error => {
+                    hideLoading();
+                    showError(error.message);
+                });
+        }
+
+        function getWeatherByCoords(lat, lon) {
+            const url = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${lat},${lon}&days=5&aqi=no&alerts=no&lang=pt`;
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Não foi possível obter dados para sua localização');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    displayWeatherData(data);
+                    cityInput.value = data.location.name;
+                    locationMessage.textContent = `Sua localização atual: ${data.location.name}`;
+                    startAutoRefresh();
+                })
+                .catch(error => {
+                    hideLoading();
+                    showError(error.message);
+                });
+        }
+
+        function displayWeatherData(data) {
+            hideLoading();
+            hideError();
+            weatherInfo.style.display = 'block';
+
+            const location = data.location;
+            const current = data.current;
+
+            document.getElementById('city-name').textContent = `${location.name}, ${location.region ? location.region + ', ' : ''}${location.country}`;
+            document.getElementById('current-temp').textContent = Math.round(current.temp_c);
+            document.getElementById('weather-condition').textContent = current.condition.text;
+            document.getElementById('feels-like').textContent = Math.round(current.feelslike_c);
+            document.getElementById('humidity').textContent = current.humidity;
+            document.getElementById('wind-speed').textContent = current.wind_kph;
+
+            const weatherIcon = document.getElementById('weather-icon');
+            weatherIcon.src = `https:${current.condition.icon.replace('64x64', '128x128')}`;
+            weatherIcon.alt = current.condition.text;
+
+            displayForecast(data.forecast.forecastday);
+        }
+
+        function displayForecast(forecastDays) {
+            const forecastContainer = document.getElementById('forecast');
+            forecastContainer.innerHTML = '';
+
+            forecastDays.forEach((day, index) => {
+                const forecastDay = document.createElement('div');
+                forecastDay.className = 'forecast-day';
+
+                const date = new Date(day.date);
+                const dayName = date.toLocaleDateString('pt-BR', { weekday: 'short' });
+
+                forecastDay.innerHTML = `
+                    <div class="day-name">${dayName}</div>
+                    <img src="https:${day.day.condition.icon}" alt="${day.day.condition.text}">
+                    <div class="temps">${Math.round(day.day.maxtemp_c)}° / ${Math.round(day.day.mintemp_c)}°</div>
+                    <div class="condition">${day.day.condition.text}</div>
+                `;
+
+                forecastContainer.appendChild(forecastDay);
+            });
+        }
+
+        // Helper functions for showing/hiding messages
+        function showLoading() {
+            loadingElement.style.display = 'block';
+            weatherInfo.style.display = 'none';
+        }
+
+        function hideLoading() {
+            loadingElement.style.display = 'none';
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            weatherInfo.style.display = 'none';
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>
